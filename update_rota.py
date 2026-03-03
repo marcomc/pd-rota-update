@@ -31,12 +31,13 @@ Usage:
 import argparse
 import csv
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -57,7 +58,15 @@ def _run(cmd, check=True):
 
 def pd_json(*args):
     out = _run(["pd"] + list(args))
-    return json.loads(out) if out else {}
+    if not out:
+        return {}
+    try:
+        return json.loads(out)
+    except json.JSONDecodeError as e:
+        print(f"\nERROR: could not parse response from 'pd {' '.join(args)}':", file=sys.stderr)
+        print(f"  {e}", file=sys.stderr)
+        print(f"  Raw output: {out[:200]}", file=sys.stderr)
+        sys.exit(1)
 
 
 def pd_cmd(*args, check=True):
@@ -76,9 +85,11 @@ def build_user_index():
         sys.exit("ERROR: unexpected response from 'pd user list'")
     index = {}
     for u in users:
-        full = u["name"]
+        full = u.get("name", "").strip()
+        if not full:
+            continue  # skip service accounts / bots with no name
         first = full.split()[0]
-        entry = {"id": u["id"], "email": u["email"], "name": full}
+        entry = {"id": u["id"], "email": u.get("email", ""), "name": full}
         index[full.lower()] = entry
         if first.lower() not in index:  # full name takes precedence
             index[first.lower()] = entry
@@ -105,7 +116,7 @@ def resolve(name, index):
 
 def resolve_schedule_id(ref):
     """Accept a PagerDuty schedule ID or a name substring."""
-    if len(ref) == 7 and ref[0].upper() == "P":
+    if re.fullmatch(r"P[A-Z0-9]{6}", ref.upper()):
         return ref.upper()
     schedules = pd_json("schedule", "list", "--json")
     if not isinstance(schedules, list):
@@ -126,6 +137,8 @@ def resolve_schedule_id(ref):
 def fetch_schedule(schedule_id):
     """Return the schedule dict from GET /schedules/{id}."""
     data = pd_json("rest", "get", "-e", f"/schedules/{schedule_id}")
+    if "schedule" not in data:
+        sys.exit(f"ERROR: unexpected API response for schedule '{schedule_id}': {data}")
     return data["schedule"]
 
 
@@ -137,24 +150,27 @@ def fetch_schedule(schedule_id):
 def _parse_date(date_str):
     """Parse a DD/MM/YYYY (or DD/MM) date string into a datetime.date."""
     parts = date_str.strip().split("/")
-    if len(parts) == 3:
-        day, month, year = map(int, parts)
-        return datetime(year, month, day).date()
-    if len(parts) == 2:
-        day, month = map(int, parts)
-        today = datetime.today().date()
-        for year in (today.year, today.year + 1):
-            d = datetime(year, month, day).date()
-            if (d - today).days >= -7:
-                return d
-        return datetime(today.year + 1, month, day).date()
+    try:
+        if len(parts) == 3:
+            day, month, year = map(int, parts)
+            return datetime(year, month, day).date()
+        if len(parts) == 2:
+            day, month = map(int, parts)
+            today = datetime.today().date()
+            for year in (today.year, today.year + 1):
+                d = datetime(year, month, day).date()
+                if (d - today).days >= -7:
+                    return d
+            return datetime(today.year + 1, month, day).date()
+    except ValueError as e:
+        sys.exit(f"ERROR: invalid date '{date_str}' — {e}")
     sys.exit(f"ERROR: invalid date '{date_str}' — expected DD/MM/YYYY or DD/MM")
 
 
 def parse_rota(path):
     """Return {weekday (0=Mon): {'date': first_date, 'names': [name, ...]}}."""
     rota = {}
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:
         for row in csv.reader(f):
             if len(row) < 3:
                 continue
@@ -165,6 +181,11 @@ def parse_rota(path):
             weekday = first_date.weekday()  # 0=Mon … 6=Sun
             names = [c.strip() for c in row[2:] if c.strip()]
             if names:
+                if weekday in rota:
+                    sys.exit(
+                        f"ERROR: duplicate weekday {DAY_NAMES[weekday]} in CSV "
+                        f"(rows for {rota[weekday]['date']} and {first_date})"
+                    )
                 rota[weekday] = {"date": first_date, "names": names}
     return rota
 
@@ -207,6 +228,7 @@ def make_virtual_start(first_date, existing_vstart, tz_name):
         existing_dt.minute,
         existing_dt.second,
         tzinfo=tz,
+        fold=existing_dt.fold,
     )
     return dt.isoformat()
 

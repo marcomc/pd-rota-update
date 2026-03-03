@@ -1,6 +1,6 @@
 [project]
 name = "pd-rota-update"
-version = "0.1.0"
+version = "0.1.1"
 description = "Sync a CSV rota to PagerDuty schedule layers"
 requires-python = ">=3.9"
 
