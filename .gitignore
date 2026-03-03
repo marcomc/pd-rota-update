@@ -1,0 +1,9 @@
+# Rota CSV files contain on-call assignments that may be sensitive.
+# Commit rota_template.csv only; keep live rotas out of version control.
+*.csv
+!rota_template.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
