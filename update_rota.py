@@ -31,15 +31,20 @@ Usage:
 import argparse
 import csv
 import json
+import os
 import re
 import subprocess
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+PD_ENV = {
+    **os.environ,
+    "PD_OCLIF_CLIENT_HOME": "/dev/null/pd-rota-update-client",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +53,7 @@ DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
 def _run(cmd, check=True):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, env=PD_ENV)
     if check and r.returncode != 0:
         print(f"\nERROR running: {' '.join(cmd)}", file=sys.stderr)
         print(r.stderr.strip(), file=sys.stderr)
