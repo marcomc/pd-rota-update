@@ -10,6 +10,12 @@ This file teaches AI agents (Claude, Codex, etc.) how to work with this project.
 layer updates. The main script is `update_rota.py`; the active rota is `rota.csv`
 (git-ignored); the committed structural reference is `rota_template.csv`.
 
+## PagerDuty CLI integration
+
+- When changing how `update_rota.py` invokes `pd`, keep `Makefile`
+  prerequisite/install checks in sync so runtime and install validation use the
+  same CLI environment assumptions.
+
 ---
 
 ## Installation

@@ -4,6 +4,7 @@ SCRIPT   := update_rota.py
 TARGET   := $(HOME)/.local/bin/pd-rota-update
 ROTA     ?= rota.csv
 SCHEDULE ?= $(error SCHEDULE is required — e.g.: make preview SCHEDULE="My Schedule")
+PD_ENV   := PD_OCLIF_CLIENT_HOME=/dev/null/pd-rota-update-client
 
 # ── Help (default) ────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ check-prereqs:
 	@command -v pd >/dev/null 2>&1 || \
 		{ echo "ERROR: 'pd' (pagerduty-cli) is not installed."; \
 		  echo "       Fix: npm install -g pagerduty-cli"; exit 1; }
-	@echo "Prerequisites OK (python3=$$(python3 --version), pd=$$(pd --version 2>/dev/null || echo 'ok'))"
+	@echo "Prerequisites OK (python3=$$(python3 --version), pd=$$($(PD_ENV) pd --version 2>/dev/null || echo 'ok'))"
 
 # ── Installation ─────────────────────────────────────────────────────────────
 

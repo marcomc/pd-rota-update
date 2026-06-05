@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed in 0.1.2
 
-- `pd` subprocess calls now bypass PagerDuty CLI's stale per-user oclif client
-  cache, preventing failures when the cached shim points at a missing binary.
+- Runtime `pd` subprocess calls and install prerequisite checks now bypass
+  PagerDuty CLI's stale per-user oclif client cache, preventing failures when
+  the cached shim points at a missing binary.
 
 ## [0.1.1] — 2026-03-04
 
