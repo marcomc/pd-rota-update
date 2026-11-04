@@ -38,7 +38,7 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 PD_ENV = {

@@ -37,7 +37,9 @@ check-prereqs:
 	@command -v pd >/dev/null 2>&1 || \
 		{ echo "ERROR: 'pd' (pagerduty-cli) is not installed."; \
 		  echo "       Fix: npm install -g pagerduty-cli"; exit 1; }
-	@echo "Prerequisites OK (python3=$$(python3 --version), pd=$$($(PD_ENV) pd --version 2>/dev/null || echo 'ok'))"
+	@pd_version="$$($(PD_ENV) pd --version)" || \
+		{ echo "ERROR: 'pd --version' failed." >&2; exit 1; }; \
+		echo "Prerequisites OK (python3=$$(python3 --version), pd=$$pd_version)"
 
 # ── Installation ─────────────────────────────────────────────────────────────
 
